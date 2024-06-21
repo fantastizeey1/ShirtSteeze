@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useSnapshot } from "valtio";
+
 import config from "../config/config";
 import state from "../store";
 import { download } from "../assets";
@@ -27,9 +28,16 @@ const Customizer = () => {
     stylishShirt: false,
   });
 
+  useEffect(() => {
+    if (activeEditorTab !== "colorpicker") {
+      state.showColorPicker = false;
+    }
+  }, [activeEditorTab]);
+
   const generateTabContent = () => {
     switch (activeEditorTab) {
       case "colorpicker":
+        state.showColorPicker = true;
         return <ColorPicker />;
       case "filepicker":
         return <FilePicker file={file} setFile={setFile} readFile={readFile} />;
@@ -52,21 +60,19 @@ const Customizer = () => {
 
     try {
       setGeneratingImg(true);
-      const response = await fetch(
-        "https://shirtsteeze.onrender.com/api/v1/dalle",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ prompt }),
-        }
-      );
+
+      const response = await fetch("http://localhost:8080/api/v1/dalle", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ prompt }),
+      });
 
       if (!response.ok) {
-        const errorText = await response.text();
+        const errorText = await response.text(); // Get the error message from the response
         alert("Limit AI limit reached");
-        window.location.reload();
+        window.location.reload(); // Reload the page
         throw new Error(
           `Failed to fetch image from API: ${response.status} ${response.statusText} - ${errorText}`
         );
@@ -89,6 +95,7 @@ const Customizer = () => {
 
   const handleDecals = (type, result) => {
     const decalType = DecalTypes[type];
+
     state[decalType.stateProperty] = result;
 
     if (!activeFilterTab[decalType.filterTab]) {
